@@ -1,0 +1,9 @@
+openai
+redis
+PyPDF2
+colorama
+matplotlib
+plotly
+scipy
+scikit-learn
+tenacity 
