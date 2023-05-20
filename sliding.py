@@ -2,7 +2,8 @@ class SlidingWindowEncoder:
     def __init__(self, window_size, step_size):
         self.window_size = window_size
         self.step_size = step_size
-
+        self.utils = Utils()
+        
     def encode(self, text):
         text_windows = []
 
@@ -31,3 +32,9 @@ class SlidingWindowEncoder:
 
     def count_characters(self, text):
         return len(text)
+    
+    def get_embeddings(self, text):
+        """Returns the embeddings for the given text by splitting into windows."""
+        text_windows = self.encode(text)
+        embeddings = [self.utils.get_embedding(window) for window in text_windows]
+        return embeddings
