@@ -20,7 +20,6 @@ custom_theme = Theme({
 console = Console(theme=custom_theme)
 progress = Progress(console=console)
 
-
 class OpenAIInteraction:
     def __init__(self):
         init(autoreset=True)
@@ -108,12 +107,19 @@ class OpenAIInteraction:
         return response.choices[0].text.strip()
 
     def download_file(self, url):
-        ... 
+        local_filename = url.split('/')[-1]
+        with requests.get(url, stream=True) as r:
+            r.raise_for_status()
+            with open(local_filename, 'wb') as f:
+                for chunk in r.iter_content(chunk_size=8192): 
+                    if chunk: # filter out keep-alive new chunks
+                        f.write(chunk)
+        return local_filename
         
     async def analyze_input(self, input_text, context=[]):
         input_embeddings = self.encoder.get_embeddings(input_text)
         relevant_histories = self.embedding_utils.search(input_embeddings)
-        return relevant_histories
+        return relevant_histories  
         
     async def generate_response(self, prompt, relevant_histories, response_type='creative', context=[], **kwargs):
         model = self.model_map[response_type]
@@ -168,6 +174,7 @@ class OpenAIInteraction:
                     explanation_prompt = input_text.split('explain ', 1)[1] 
                     explanation = self.explain_response(explanation_prompt)
                     console.print(explanation, style='success')
+
                 elif input_text.lower().startswith('print '):
                     print_message = input_text.split('print ', 1)[1]
                     print_response = self.print_message(print_message)
@@ -181,17 +188,16 @@ class OpenAIInteraction:
                     relevant_histories = await self.analyze_input(input_text, context)
                     console.print('Generating AI response...', style='info')
                     with progress:
-                        task = progress.add_task('[completion]Generating...', total=100)
-                        response = await self.generate_response(input_text, relevant_histories, context=context)
+                        task = progress.add_task('[completion]Generating...', total=100)  
+                        response = await self.generate_response(input_text, relevant_histories, context=context)  
                         progress.update(task, completed=100)
                     console.print('\nFull Response:\n', response, style='success')
-                    context.append(response)
+                    context.append(response)  
             except KeyboardInterrupt:
                 console.print('\nExiting due to KeyboardInterrupt', style='error')
                 break
             except Exception as e:
                 console.print(f"An unexpected error occurred: {str(e)}", style='error')
-
 
 if __name__ == '__main__':
     interaction = OpenAIInteraction()
