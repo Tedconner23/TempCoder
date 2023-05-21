@@ -2,9 +2,8 @@ import os
 import asyncio
 import openai
 from utils import Utils
-from VectorDB import VectorDatabase
-from SlidingWindow import SlidingWindowEncoder
-from gui import OpenAIInteractionApp
+from vector import VectorDatabase
+from slidingwindow import SlidingWindowEncoder
 
 class OpenAIInteraction:
     def __init__(self):
