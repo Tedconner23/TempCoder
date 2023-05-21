@@ -2,7 +2,7 @@ from kivy.app import App
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
 from kivy.uix.textinput import TextInput
-from kivy.uix.label import Label
+from kivy.uix.label import Label  
 from kivy.uix.scrollview import ScrollView
 from kivy.properties import StringProperty, ListProperty, NumericProperty
 from openai_interaction import OpenAIInteraction
