@@ -1,7 +1,6 @@
 import numpy as np 
 from sklearn.metrics.pairwise import cosine_similarity
 
-
 class SlidingWindowEncoder:
     def __init__(self, window_size, step_size):
         self.window_size = window_size
