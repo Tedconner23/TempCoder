@@ -1,3 +1,5 @@
+import threading
+import asyncio
 from kivy.app import App
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
@@ -5,7 +7,13 @@ from kivy.uix.textinput import TextInput
 from kivy.uix.label import Label  
 from kivy.uix.scrollview import ScrollView
 from kivy.properties import StringProperty, ListProperty, NumericProperty
+from kivy.clock import Clock
+from utils import Utils 
+from vector import VectorDatabase
 from openai_interaction import OpenAIInteraction
+
+redis_client = redis.StrictRedis(**redis_config)
+interaction = OpenAIInteraction(Utils(), VectorDatabase(Redis_client))  
 
 class OpenAIInteractionApp(App):
     history = StringProperty()
@@ -44,21 +52,31 @@ class OpenAIInteractionApp(App):
         button.bind(on_press=on_press_method)
         layout.add_widget(button)
 
-    async def enter_pressed(self, instance):
-        prompt = self.prompt_input.text
-        persona = self.selected_persona
-        response = await self.interaction.generate_conversation(prompt, persona)
-        self.update_history(prompt, response)
+    def enter_pressed(self, instance):
+        threading.Thread(target=self.async_enter_pressed).start()
 
-    async def creative_pressed(self, instance):
-        prompt = self.prompt_input.text
-        response = await self.interaction.generate_response(prompt, response_type='creative')
-        self.update_history(prompt, response)
 
-    async def code_pressed(self, instance):
+    def async_enter_pressed(self):
+        prompt = self.prompt_input.text
+        response = asyncio.run(self.interaction.generate_conversation(prompt))
+        Clock.schedule_once(lambda dt: self.update_history(prompt, response), 0)
+
+
+    def creative_pressed(self, instance):
+        threading.Thread(target=self.async_creative_pressed).start()
+
+    def async_creative_pressed(self):
+        prompt = self.prompt_input.text
+        response = asyncio.run(self.interaction.generate_response(prompt, response_type='creative'))
+        Clock.schedule_once(lambda dt: self.update_history(prompt, response), 0)
+
+    def code_pressed(self, instance):
+        threading.Thread(target=self.async_code_pressed).start()
+
+    def async_code_pressed(self):
         code_prompt = self.prompt_input.text
-        response = self.interaction.get_code_recommendations(code_prompt)
-        self.update_history(code_prompt, response)
+        response = asyncio.run(self.interaction.get_code_recommendations(code_prompt))
+        Clock.schedule_once(lambda dt: self.update_history(code_prompt, response), 0)
 
     def clear_pressed(self, instance):
         self.prompt_input.text = ""
