@@ -6,48 +6,49 @@ from vector import VectorDatabase
 from slidingwindow import SlidingWindowEncoder
 
 class OpenAIInteraction:
-    def __init__(self):
-        self.openai = openai
-        self.openai.api_key = os.environ['OPENAI_API_KEY']
-        self.embedding_utils = Utils()
-        self.vector_db = VectorDatabase(self.embedding_utils.redis_db)
-        self.encoder = SlidingWindowEncoder(4096, 2048)
-        self.model_map = {'creative': 'gpt-4', 'factual': 'gpt-3.5', 'code': 'babbage', 'explanation': 'ada', 'embedding': 'embed-ada'}
+  def __init__(self, utils, vector_db):
+    self.openai = openai 
+    self.openai.api_key = os.environ['OPENAI_API_KEY']
+    self.utils = utils
+    self.vector_db = vector_db
 
-    async def get_relevant_histories(self, prompt):
-        prompt_embedding = self.encoder.get_embeddings(prompt)
-        relevant_histories = await self.vector_db.search(prompt_embedding, top_k=5)
-        context = [history for history, _ in relevant_histories]
-        return context
+  async def get_relevant_histories(self, prompt):
+    prompt_embedding = self.utils.get_embedding(prompt)
+    relevant_histories = await self.vector_db.search(prompt_embedding, top_k=5)
+    context = [history for history, _ in relevant_histories]
+    return context
+  
+  async def generate_response(self, prompt, context=[], response_type='creative', **kwargs):
+    model = self.model_map[response_type]
+    response = self.openai.Completion.create(
+      model=model, 
+      prompt=prompt, 
+      context=context, 
+      max_tokens=8000, 
+      **kwargs
+    )
+    best_response = response.choices[0]['text'].strip()
+    return best_response
 
-    async def generate_response(self, prompt, context=[], response_type='creative', **kwargs):
-        model = self.model_map[response_type]
-        response = self.openai.Completion.create(
-            model=model,
-            prompt=prompt,
-            context=context,
-            max_tokens=8000,
-            **kwargs
-        )
-        best_response = response.choices[0]['text'].strip()
-        return best_response
-
-    async def generate_conversation(self, prompt, persona_traits=None):
-        context = await self.get_relevant_histories(prompt)
-        system_messages = [{'role': 'system', 'content': 'You are an AI language model.'}]
-        if persona_traits:
-            system_messages.append({'role': 'system', 'content': f"You have the following traits: {', '.join(persona_traits)}."})
-        full_prompt = '\n\n'.join([str(memory) for memory in context] + [f"User: {prompt}\nAI:"])
-        response = self.openai.ChatCompletion.create(
-            model='gpt-3.5',
-            messages=system_messages + [{'role': 'user', 'content': full_prompt}],
-            max_tokens=8000,
-            n=1,
-            stop=None,
-            temperature=.7
-        )
-        best_response = response.choices[0]['message']['content'].strip()
-        return best_response
+  async def generate_conversation(self, prompt, persona_traits=None):
+    context = await self.get_relevant_histories(prompt)
+    system_messages = [{'role': 'system', 'content': 'You are an AI language model.'}]
+    if persona_traits:
+      system_messages.append({
+        'role': 'system', 
+        'content': f'You have the following traits: {",".join(persona_traits)}.'
+      })
+    full_prompt = '\n\n'.join([str(memory) for memory in context] + [f'User: {prompt}\nAI: '])
+    response = self.openai.ChatCompletion.create(
+      model='gpt-3.5', 
+      messages=system_messages + [{'role': 'user', 'content': full_prompt}],  
+      max_tokens=8000, 
+      n=1, 
+      stop=None, 
+      temperature=.7
+    )
+    best_response = response.choices[0]['message']['content'].strip()
+    return best_response
 
     def get_code_recommendations(self, code_prompt, context=[]):
         response = self.openai.Codex.create(
