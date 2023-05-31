@@ -1,15 +1,4 @@
-import asyncio
-import zipfile
-import glob
-import os
-import shutil
-import tempfile
-import openai
-import pdfplumber
-import redis
-import wget
-import pandas as pd
-import numpy as np
+import asyncio, zipfile, glob, os, shutil, tempfile, openai, pdfplumber, redis, wget, pandas as pd, numpy as np
 from ast import literal_eval
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor
@@ -19,15 +8,15 @@ from slidingwindow import SlidingWindowEncoder
 from vector import VectorDatabase
 
 class Utils:
-    def __init__(self, engine='text-embedding-ada-002', redis_config={'host': 'localhost', 'port': 6379, 'db': 0},
-                 data_path='../../data/', file_name='vector_database_articles_embedded'):
-        self.engine = engine
-        self.redis_db = redis.StrictRedis(**redis_config)
+    def __init__(self, engine='text-embedding-ada-002', redis_config={"host": "localhost","port": 6379,"db": 0}, data_path='../../data/', file_name='vector_database_articles_embedded', file_ext='.csv'):
+        self.engine = 'text-embedding-ada-002'
+        self.redis_config = redis_config
         self.embedding_cache = {}
         self.inverted_index = defaultdict(list)
         self.data_path = data_path
         self.file_name = file_name
-        self.csv_file_path = os.path.join(data_path, file_name + '.csv')
+        self.file_ext = file_ext
+        self.csv_file_path = os.path.join(data_path, file_name + file_ext)
 
     def cosine_similarity(self, a, b):
         a = np.array(a)
@@ -35,7 +24,7 @@ class Utils:
         return np.dot(a, b.T) / (np.linalg.norm(a) * np.linalg.norm(b, axis=1))
 
     def _get_single_embedding(self, text_part, **kwargs):
-        response = openai.Embedding.create(input=[text_part], engine=self.engine, **kwargs)
+        response = openai.Embedding.create(input=[text_part], engine='text-embedding-ada-002', **kwargs)
         return response['data'][0]['embedding']
 
     def get_embedding(self, text, **kwargs):
