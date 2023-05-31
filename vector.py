@@ -22,6 +22,8 @@ class VectorDatabase:
     def search(self, query_embedding, top_k=5):
         keys = self.get_keys_by_prefix('history:')
         embeddings = [np.array(self.get_item(key), dtype=float) for key in keys]
+        if not embeddings:
+            return []
         similarities = cosine_similarity([query_embedding], embeddings)[0]
         top_indices = np.argsort(similarities)[-top_k:][::-1]
         return [(keys[i], similarities[i]) for i in top_indices]
